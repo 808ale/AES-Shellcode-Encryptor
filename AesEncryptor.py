@@ -189,14 +189,16 @@ def main() -> None:
     parser.add_argument("-c", action="store_true", help="Print the output in C format.")
     parser.add_argument("-buf", type=str, help="Path to .bin file containing raw x64 shellcode.")
     parser.add_argument("-buf86", type=str, help="Path to .bin file containing raw x86 shellcode.")
-    # parser.add_argument("-o", type=str, help="(Optional) Output to file instead of stdout.") ← Add later if you want
+    parser.add_argument("--save-key", type=str, help="Optional file path to save AES key.")
+    parser.add_argument("--save-buf", type=str, help="Optional file path to save encrypted x64 payload.")
+    parser.add_argument("--save-buf86", type=str, help="Optional file path to save encrypted x86 payload.")
 
     args = parser.parse_args()
 
     # Load buffers
     buf = buf86 = None
     if not args.buf and not args.buf86:
-        parser.error("At least one of --buf or --buf86 must be specified.")
+        parser.error("At least one of -buf or -buf86 must be specified.")
     if args.buf:
         with open(args.buf, 'rb') as f:
             buf = f.read()
@@ -212,6 +214,16 @@ def main() -> None:
     encrypted_buf = Encryptor.encrypt_bytes_to_bytes_aes(buf, aes_key, aes_iv) if buf else None
     encrypted_buf86 = Encryptor.encrypt_bytes_to_bytes_aes(buf86, aes_key, aes_iv) if buf86 else None
 
+    # Optional: Save outputs to files
+    if args.save_key:
+        with open(args.save_key, "wb") as f:
+            f.write(aes_key)
+    if args.save_buf and encrypted_buf:
+        with open(args.save_buf, "wb") as f:
+            f.write(encrypted_buf)
+    if args.save_buf86 and encrypted_buf86:
+        with open(args.save_buf86, "wb") as f:
+            f.write(encrypted_buf86)
     # Dispatch format
     if args.csharp:
         Printer.print_csharp(aes_key, aes_iv, encrypted_buf, encrypted_buf86)
@@ -226,5 +238,6 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
+# TODO: output key and buf to file
 # TODO: automate payload generation (with flag) 
 # TODO: next py script to create shellcode runners and populate with this script's output
